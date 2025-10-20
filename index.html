@@ -898,6 +898,466 @@ throw "File not found: '"+x+"'";
 return Sk.builtinFiles["files"][x];
 }
 });
+try{
+Sk.importMainWithBody("<stdin>",false,code,true);
+}catch(err){
+output.innerHTML+=`<div class="terminal-output" style="color:#ff5555">Error: ${err.toString()}</div>`;
+}
+}
+
+// Code Editor Functions
+function initCodeEditor(){
+codeEditor=CodeMirror.fromTextArea(document.getElementById('codeEditor'),{
+mode:'javascript',
+theme:'monokai',
+lineNumbers:true,
+autoCloseBrackets:true,
+matchBrackets:true,
+indentUnit:4,
+tabSize:4
+});
+codeEditor.setSize('100%','400px');
+codeEditor.setValue('// ChromeOS Pro Code Editor\n// Write your code here\n\nconsole.log("Hello from Code Editor!");');
+}
+
+function changeLanguage(){
+const lang=document.getElementById('languageSelect').value;
+codeEditor.setOption('mode',lang);
+}
+
+function runCode(){
+const code=codeEditor.getValue();
+const output=document.getElementById('codeOutput');
+const lang=document.getElementById('languageSelect').value;
+output.innerHTML='';
+if(lang==='javascript'){
+const oldLog=console.log;
+const oldError=console.error;
+console.log=function(...args){
+output.innerHTML+=args.join(' ')+'<br>';
+};
+console.error=function(...args){
+output.innerHTML+='<span style="color:#ff5555">'+args.join(' ')+'</span><br>';
+};
+try{
+eval(code);
+}catch(err){
+output.innerHTML+='<span style="color:#ff5555">Error: '+err.message+'</span>';
+}
+console.log=oldLog;
+console.error=oldError;
+}else if(lang==='python'){
+Sk.configure({
+output:function(text){
+output.innerHTML+=text+'<br>';
+}
+});
+try{
+Sk.importMainWithBody("<stdin>",false,code,true);
+}catch(err){
+output.innerHTML+='<span style="color:#ff5555">Error: '+err.toString()+'</span>';
+}
+}else{
+output.innerHTML=code.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+}
+
+function clearEditor(){
+codeEditor.setValue('');
+document.getElementById('codeOutput').innerHTML='';
+}
+
+function saveCode(){
+const code=codeEditor.getValue();
+const blob=new Blob([code],{type:'text/plain'});
+const link=document.createElement('a');
+link.download='code.txt';
+link.href=URL.createObjectURL(blob);
+link.click();
+showNotification('File Saved','Your code has been saved');
+}
+
+function formatCode(){
+const code=codeEditor.getValue();
+try{
+const formatted=code.split('\n').map(line=>line.trim()).join('\n');
+codeEditor.setValue(formatted);
+showNotification('Code Formatted','Your code has been formatted');
+}catch(e){
+showNotification('Format Error','Could not format code');
+}
+}
+
+// File Manager Functions
+function renderFileManager(){
+const content=document.getElementById('fileManagerContent');
+content.innerHTML='';
+for(let name in currentPath){
+if(name!=='type'&&name!=='content'&&name!=='files'){
+const item=currentPath[name];
+const fileDiv=document.createElement('div');
+fileDiv.className='file-item';
+fileDiv.innerHTML=`
+<div class="file-icon">${item.type==='folder'?'📁':'📄'}</div>
+<div class="file-name">${name}</div>
+`;
+fileDiv.onclick=function(){
+if(item.type==='folder'){
+pathHistory.push(currentPath);
+currentPath=item.files||{};
+renderFileManager();
+}else{
+showNotification('File: '+name,item.content||'Empty file');
+}
+};
+content.appendChild(fileDiv);
+}
+}
+}
+
+function goBack(){
+if(pathHistory.length>0){
+currentPath=pathHistory.pop();
+renderFileManager();
+}
+}
+
+function createNewFile(){
+const name=prompt('Enter file name:');
+if(name){
+currentPath[name]={type:'file',content:''};
+renderFileManager();
+showNotification('File Created',name+' has been created');
+}
+}
+
+function createNewFolder(){
+const name=prompt('Enter folder name:');
+if(name){
+currentPath[name]={type:'folder',files:{}};
+renderFileManager();
+showNotification('Folder Created',name+' has been created');
+}
+}
+
+function uploadFile(){
+const input=document.createElement('input');
+input.type='file';
+input.onchange=function(e){
+const file=e.target.files[0];
+if(file){
+currentPath[file.name]={type:'file',content:'Uploaded: '+file.name};
+renderFileManager();
+showNotification('File Uploaded',file.name+' has been uploaded');
+}
+};
+input.click();
+}
+
+function deleteSelected(){
+const name=prompt('Enter file/folder name to delete:');
+if(name&&currentPath[name]){
+delete currentPath[name];
+renderFileManager();
+showNotification('Deleted',name+' has been deleted');
+}
+}
+
+// Paint Functions
+let painting=false;
+let paintCtx;
+
+function initPaint(){
+const canvas=document.getElementById('paintCanvas');
+paintCtx=canvas.getContext('2d');
+canvas.addEventListener('mousedown',startPaint);
+canvas.addEventListener('mouseup',stopPaint);
+canvas.addEventListener('mousemove',paint);
+canvas.addEventListener('mouseleave',stopPaint);
+paintCtx.fillStyle='white';
+paintCtx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+function startPaint(e){
+painting=true;
+paint(e);
+}
+
+function stopPaint(){
+painting=false;
+paintCtx.beginPath();
+}
+
+function paint(e){
+if(!painting)return;
+const canvas=document.getElementById('paintCanvas');
+const rect=canvas.getBoundingClientRect();
+const x=e.clientX-rect.left;
+const y=e.clientY-rect.top;
+paintCtx.lineWidth=document.getElementById('brushSize').value;
+paintCtx.lineCap='round';
+if(paintTool==='eraser'){
+paintCtx.strokeStyle='white';
+}else{
+paintCtx.strokeStyle=document.getElementById('colorPicker').value;
+}
+paintCtx.lineTo(x,y);
+paintCtx.stroke();
+paintCtx.beginPath();
+paintCtx.moveTo(x,y);
+}
+
+function setTool(tool){
+paintTool=tool;
+showNotification('Tool Changed','Using '+tool);
+}
+
+function clearCanvas(){
+const canvas=document.getElementById('paintCanvas');
+paintCtx.fillStyle='white';
+paintCtx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+function fillCanvas(){
+const canvas=document.getElementById('paintCanvas');
+paintCtx.fillStyle=document.getElementById('colorPicker').value;
+paintCtx.fillRect(0,0,canvas.width,canvas.height);
+}
+
+function downloadCanvas(){
+const canvas=document.getElementById('paintCanvas');
+const link=document.createElement('a');
+link.download='painting.png';
+link.href=canvas.toDataURL();
+link.click();
+showNotification('Image Saved','Your painting has been saved');
+}
+
+// Photo Viewer Functions
+function prevPhoto(){
+photoIndex=(photoIndex-1+photos.length)%photos.length;
+document.getElementById('photoImg').src=photos[photoIndex];
+}
+
+function nextPhoto(){
+photoIndex=(photoIndex+1)%photos.length;
+document.getElementById('photoImg').src=photos[photoIndex];
+}
+
+function loadRandomPhoto(){
+const randomId=Math.floor(Math.random()*1000);
+const newPhoto='https://images.unsplash.com/photo-'+randomId+'?w=1200&q=80';
+document.getElementById('photoImg').src=newPhoto;
+showNotification('Photo Loaded','Random photo loaded');
+}
+
+// Snake Game Functions
+let snake=[{x:10,y:10}];
+let food={x:15,y:15};
+let dx=0;
+let dy=0;
+let score=0;
+let highScore=0;
+let gameLoop;
+
+function startGame(){
+if(gameState==='running')return;
+snake=[{x:10,y:10}];
+food={x:15,y:15};
+dx=1;
+dy=0;
+score=0;
+gameState='running';
+gamePaused=false;
+document.getElementById('score').textContent=score;
+if(gameLoop)clearInterval(gameLoop);
+gameLoop=setInterval(updateGame,100);
+showNotification('Game Started','Good luck!');
+}
+
+function pauseGame(){
+if(gameState!=='running')return;
+gamePaused=!gamePaused;
+showNotification(gamePaused?'Game Paused':'Game Resumed','');
+}
+
+function resetGame(){
+stopGame();
+score=0;
+document.getElementById('score').textContent=score;
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+ctx.fillStyle='#34495e';
+ctx.fillRect(0,0,canvas.width,canvas.height);
+showNotification('Game Reset','Ready for a new game');
+}
+
+function stopGame(){
+if(gameLoop)clearInterval(gameLoop);
+gameState='stopped';
+gamePaused=false;
+}
+
+function updateGame(){
+if(gamePaused)return;
+const head={x:snake[0].x+dx,y:snake[0].y+dy};
+if(head.x<0||head.x>=20||head.y<0||head.y>=20||snake.some(segment=>segment.x===head.x&&segment.y===head.y)){
+stopGame();
+if(score>highScore){
+highScore=score;
+document.getElementById('highScore').textContent=highScore;
+showNotification('New High Score!','Score: '+score);
+}else{
+showNotification('Game Over','Score: '+score);
+}
+return;
+}
+snake.unshift(head);
+if(head.x===food.x&&head.y===food.y){
+score++;
+document.getElementById('score').textContent=score;
+food={x:Math.floor(Math.random()*20),y:Math.floor(Math.random()*20)};
+}else{
+snake.pop();
+}
+drawGame();
+}
+
+function drawGame(){
+const canvas=document.getElementById('gameCanvas');
+const ctx=canvas.getContext('2d');
+const cellSize=20;
+ctx.fillStyle='#34495e';
+ctx.fillRect(0,0,canvas.width,canvas.height);
+ctx.fillStyle='#27c93f';
+snake.forEach(segment=>{
+ctx.fillRect(segment.x*cellSize,segment.y*cellSize,cellSize-2,cellSize-2);
+});
+ctx.fillStyle='#ff5f56';
+ctx.fillRect(food.x*cellSize,food.y*cellSize,cellSize-2,cellSize-2);
+}
+
+document.addEventListener('keydown',function(e){
+if(gameState!=='running'||gamePaused)return;
+switch(e.key){
+case 'ArrowUp':if(dy===0){dx=0;dy=-1;}break;
+case 'ArrowDown':if(dy===0){dx=0;dy=1;}break;
+case 'ArrowLeft':if(dx===0){dx=-1;dy=0;}break;
+case 'ArrowRight':if(dx===0){dx=1;dy=0;}break;
+}
+});
+
+// Calculator Functions
+function calcInput(val){
+if(calcCurrent==='0'||calcCurrent==='Error'){
+calcCurrent=val;
+}else{
+calcCurrent+=val;
+}
+document.getElementById('calcDisplay').textContent=calcCurrent;
+}
+
+function calcClear(){
+calcCurrent='0';
+document.getElementById('calcDisplay').textContent=calcCurrent;
+}
+
+function calcEquals(){
+try{
+calcCurrent=eval(calcCurrent).toString();
+document.getElementById('calcDisplay').textContent=calcCurrent;
+}catch(e){
+calcCurrent='Error';
+document.getElementById('calcDisplay').textContent=calcCurrent;
+}
+}
+
+// Music Player Functions
+function toggleMusic(){
+musicPlaying=!musicPlaying;
+document.getElementById('playBtn').textContent=musicPlaying?'⏸':'▶';
+showNotification(musicPlaying?'Now Playing':'Paused',tracks[currentTrack]);
+if(musicPlaying){
+let progress=0;
+const interval=setInterval(()=>{
+if(!musicPlaying){
+clearInterval(interval);
+return;
+}
+progress+=2;
+if(progress>=100){
+progress=0;
+nextTrack();
+}
+document.getElementById('musicProgress').value=progress;
+},500);
+}
+}
+
+function prevTrack(){
+currentTrack=(currentTrack-1+tracks.length)%tracks.length;
+updateTrackInfo();
+}
+
+function nextTrack(){
+currentTrack=(currentTrack+1)%tracks.length;
+updateTrackInfo();
+}
+
+function updateTrackInfo(){
+showNotification('Now Playing',tracks[currentTrack]);
+document.getElementById('musicProgress').value=0;
+}
+
+// System Monitor Functions
+function initSystemMonitor(){
+const canvas=document.getElementById('networkChart');
+if(canvas){
+const ctx=canvas.getContext('2d');
+const data={
+labels:['0s','10s','20s','30s','40s','50s','60s'],
+datasets:[{
+label:'Network Activity',
+data:[12,19,3,5,2,3,15],
+borderColor:'rgb(102,126,234)',
+backgroundColor:'rgba(102,126,234,0.1)',
+tension:0.4
+}]
+};
+new Chart(ctx,{
+type:'line',
+data:data,
+options:{
+responsive:true,
+maintainAspectRatio:false,
+scales:{
+y:{
+beginAtZero:true
+}
+}
+}
+});
+}
+}
+
+function updateSystemMonitor(){
+const cpu=Math.floor(Math.random()*40)+30;
+const ram=Math.floor(Math.random()*30)+50;
+const disk=Math.floor(Math.random()*20)+70;
+document.getElementById('cpuBar').style.width=cpu+'%';
+document.getElementById('cpuBar').textContent=cpu+'%';
+document.getElementById('ramBar').style.width=ram+'%';
+document.getElementById('ramBar').textContent=ram+'%';
+document.getElementById('diskBar').style.width=disk+'%';
+document.getElementById('diskBar').textContent=disk+'%';
+document.getElementById('processCount').textContent=Math.floor(Math.random()*20)+10;
+}
+
+// Settings Functions
+function toggleSetting(element,setting){
+element.classList.toggle('active');
+systemSettings[setting]=!systemSettings[setting];
+showNotification('Setting Changed',setting+' is now '+(systemSettings[setting]?'enabled':'disabled'));
 }
 </script>
 </body>
