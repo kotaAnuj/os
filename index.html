@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChromeOS Pro Ultimate</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulpt.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/skulpt/1.2.0/skulpt-stdlib.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',sans-serif;overflow:hidden;background:#000;height:100vh}
+.desktop{width:100%;height:calc(100vh - 48px);position:relative;background:url('https://images.unsplash.com/photo-1579547621113-e4bb2a19bdd6?w=1920&q=80') center/cover;background-attachment:fixed}
+.desktop::before{content:'';position:absolute;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.15)}
+.desktop-icons{padding:20px;display:grid;grid-template-columns:repeat(auto-fill,90px);gap:20px;position:relative;z-index:1}
+.desktop-icon{width:80px;text-align:center;cursor:pointer;transition:all 0.3s}
+.desktop-icon:hover{transform:translateY(-5px) scale(1.05)}
+.desktop-icon-img{width:64px;height:64px;margin:0 auto 8px;background:rgba(255,255,255,0.15);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;backdrop-filter:blur(20px);border:2px solid rgba(255,255,255,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.3);transition:all 0.3s}
+.desktop-icon:hover .desktop-icon-img{background:rgba(255,255,255,0.25);box-shadow:0 12px 48px rgba(0,0,0,0.5)}
+.desktop-icon-label{color:white;font-size:12px;text-shadow:0 2px 8px rgba(0,0,0,0.8);font-weight:500}
+.taskbar{position:fixed;bottom:0;width:100%;height:48px;background:rgba(15,15,15,0.9);backdrop-filter:blur(30px);display:flex;align-items:center;padding:0 12px;border-top:1px solid rgba(255,255,255,0.1);z-index:10000}
+.start-btn{width:40px;height:40px;background:linear-gradient(135deg,#667eea,#764ba2);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-right:12px;font-size:24px;transition:transform 0.2s;box-shadow:0 4px 12px rgba(102,126,234,0.4)}
+.start-btn:hover{transform:scale(1.1)}
+.taskbar-apps{display:flex;gap:8px;flex:1;overflow-x:auto}
+.taskbar-app{height:40px;padding:0 16px;background:rgba(255,255,255,0.1);border-radius:8px;display:flex;align-items:center;gap:8px;cursor:pointer;color:white;font-size:14px;transition:all 0.2s;white-space:nowrap}
+.taskbar-app:hover{background:rgba(255,255,255,0.2)}
+.taskbar-app.active{background:rgba(255,255,255,0.3)}
+.system-tray{display:flex;align-items:center;gap:16px;color:white;font-size:14px}
+.window{position:absolute;background:white;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,0.5);display:none;flex-direction:column;overflow:hidden;border:1px solid rgba(255,255,255,0.2)}
+.window.active{display:flex}
+.window-header{height:40px;background:linear-gradient(135deg,#667eea,#764ba2);color:white;display:flex;align-items:center;justify-content:space-between;padding:0 12px;cursor:move;user-select:none}
+.window-title{font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px}
+.window-controls{display:flex;gap:8px}
+.window-control{width:16px;height:16px;border-radius:50%;cursor:pointer;transition:opacity 0.2s}
+.window-control:hover{opacity:0.8}
+.window-control.close{background:#ff5f56}
+.window-control.minimize{background:#ffbd2e}
+.window-control.maximize{background:#27c93f}
+.window-content{flex:1;overflow:auto;background:#fafafa}
+.start-menu{position:fixed;bottom:60px;left:12px;width:520px;height:650px;background:rgba(20,20,20,0.95);backdrop-filter:blur(30px);border-radius:12px;display:none;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.5);z-index:9999;border:1px solid rgba(255,255,255,0.1)}
+.start-menu.active{display:flex}
+.start-menu-header{padding:24px;color:white;background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(118,75,162,0.3))}
+.start-menu-header h2{font-size:24px;margin-bottom:8px}
+.start-menu-search{padding:0 24px 16px;background:linear-gradient(135deg,rgba(102,126,234,0.3),rgba(118,75,162,0.3))}
+.start-menu-search input{width:100%;padding:12px 16px;border:none;border-radius:8px;background:rgba(255,255,255,0.1);color:white;font-size:14px;outline:none}
+.start-menu-search input::placeholder{color:rgba(255,255,255,0.6)}
+.start-menu-apps{padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;overflow-y:auto;flex:1}
+.start-app{padding:20px;background:rgba(255,255,255,0.08);border-radius:8px;cursor:pointer;transition:all 0.2s;text-align:center;color:white}
+.start-app:hover{background:rgba(255,255,255,0.15);transform:translateY(-2px)}
+.start-app-icon{font-size:32px;margin-bottom:8px}
+.start-app-name{font-size:12px}
+.text-editor-content{padding:20px;height:100%}
+.text-editor-content textarea{width:100%;height:100%;border:none;font-family:'Courier New',monospace;font-size:14px;resize:none;outline:none;background:white;padding:12px}
+.terminal-content{padding:16px;background:#1e1e1e;color:#00ff00;font-family:'Courier New',monospace;height:100%;overflow-y:auto}
+.terminal-output{white-space:pre-wrap;margin-bottom:8px;line-height:1.5}
+.terminal-input-line{display:flex;align-items:center}
+.terminal-prompt{margin-right:8px;color:#00ccff}
+.terminal-input{flex:1;background:transparent;border:none;color:#00ff00;font-family:'Courier New',monospace;font-size:14px;outline:none}
+.code-editor-toolbar{padding:8px 12px;background:#2d2d2d;display:flex;gap:8px;align-items:center}
+.code-editor-toolbar button{padding:8px 16px;background:#4CAF50;color:white;border:none;border-radius:6px;cursor:pointer;font-size:12px;transition:background 0.2s}
+.code-editor-toolbar button:hover{background:#45a049}
+.code-editor-toolbar select{padding:8px;border-radius:6px;border:none;background:#3d3d3d;color:white;cursor:pointer}
+.code-output{padding:16px;background:#1e1e1e;color:#00ff00;font-family:monospace;min-height:100px;max-height:200px;overflow-y:auto;border-top:1px solid #444}
+.file-manager-toolbar{padding:12px;background:white;border-bottom:1px solid #e0e0e0;display:flex;gap:8px}
+.file-manager-toolbar button{padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;font-size:13px;transition:background 0.2s}
+.file-manager-toolbar button:hover{background:#5568d3}
+.file-manager-content{padding:20px;display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:16px;height:calc(100% - 60px);overflow-y:auto}
+.file-item{text-align:center;cursor:pointer;padding:12px;border-radius:8px;transition:background 0.2s}
+.file-item:hover{background:#f0f0f0}
+.file-icon{font-size:48px;margin-bottom:8px}
+.file-name{font-size:12px;word-break:break-word}
+.paint-canvas{cursor:crosshair;background:white;display:block}
+.paint-toolbar{padding:12px;background:white;border-bottom:1px solid #e0e0e0;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.paint-toolbar button{padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;transition:background 0.2s}
+.paint-toolbar button:hover{background:#5568d3}
+.paint-toolbar input[type="color"]{width:50px;height:36px;border:none;border-radius:6px;cursor:pointer}
+.paint-toolbar input[type="range"]{width:100px}
+.paint-toolbar label{font-size:13px;color:#666}
+.game-container{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#2c3e50;color:white;padding:20px}
+.game-canvas{border:2px solid white;background:#34495e;box-shadow:0 8px 24px rgba(0,0,0,0.3)}
+.game-score{margin-top:20px;font-size:24px;font-weight:bold}
+.game-controls{margin-top:16px;display:flex;gap:12px}
+.game-btn{padding:10px 30px;font-size:16px;cursor:pointer;background:#27c93f;color:white;border:none;border-radius:8px;transition:background 0.2s}
+.game-btn:hover{background:#20a037}
+.calculator-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:16px;background:#fafafa}
+.calculator-display{grid-column:1 / -1;padding:24px;background:#1e1e1e;color:white;text-align:right;font-size:32px;border-radius:8px;margin-bottom:8px;font-family:'Courier New',monospace;min-height:80px;word-break:break-all}
+.calc-btn{padding:20px;background:#667eea;color:white;border:none;border-radius:8px;font-size:18px;cursor:pointer;transition:all 0.2s;font-weight:500}
+.calc-btn:hover{background:#5568d3;transform:scale(1.05)}
+.calc-btn.operator{background:#764ba2}
+.calc-btn.equals{background:#27c93f;grid-column:span 2}
+.music-player{padding:32px;text-align:center;background:linear-gradient(135deg,#667eea,#764ba2)}
+.album-art{width:240px;height:240px;background:url('https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400&q=80') center/cover;border-radius:16px;margin:0 auto 24px;box-shadow:0 12px 40px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;font-size:64px;color:white;text-shadow:0 4px 12px rgba(0,0,0,0.5)}
+.music-info{color:white;margin-bottom:20px}
+.music-info h3{font-size:20px;margin-bottom:8px}
+.music-info p{opacity:0.8;font-size:14px}
+.music-controls{display:flex;gap:16px;justify-content:center;margin-top:24px}
+.music-controls button{width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,0.2);color:white;border:none;font-size:20px;cursor:pointer;transition:all 0.2s;backdrop-filter:blur(10px)}
+.music-controls button:hover{background:rgba(255,255,255,0.3);transform:scale(1.1)}
+.music-progress{width:100%;margin-top:24px}
+.music-progress input{width:100%}
+.settings-content{padding:24px}
+.setting-group{margin-bottom:24px;background:white;border-radius:8px;padding:16px}
+.setting-group h3{margin-bottom:16px;color:#333;font-size:18px}
+.setting-item{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#f5f5f5;border-radius:8px;margin-bottom:8px}
+.toggle-switch{width:50px;height:26px;background:#ccc;border-radius:13px;cursor:pointer;position:relative;transition:background 0.3s}
+.toggle-switch.active{background:#27c93f}
+.toggle-switch::after{content:'';position:absolute;width:22px;height:22px;border-radius:50%;background:white;top:2px;left:2px;transition:left 0.3s;box-shadow:0 2px 4px rgba(0,0,0,0.2)}
+.toggle-switch.active::after{left:26px}
+.browser-toolbar{padding:12px;background:white;border-bottom:1px solid #e0e0e0;display:flex;gap:8px;align-items:center}
+.browser-toolbar button{padding:8px 16px;background:#667eea;color:white;border:none;border-radius:6px;cursor:pointer;transition:background 0.2s}
+.browser-toolbar button:hover{background:#5568d3}
+.browser-toolbar button:disabled{background:#ccc;cursor:not-allowed}
+.browser-url{flex:1;padding:10px 16px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none}
+.browser-url:focus{border-color:#667eea}
+.browser-frame{width:100%;height:calc(100% - 60px);border:none;background:white}
+.context-menu{position:fixed;background:white;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.2);padding:8px;z-index:10001;display:none;min-width:180px}
+.context-menu-item{padding:10px 16px;cursor:pointer;border-radius:6px;font-size:14px;transition:background 0.2s}
+.context-menu-item:hover{background:#f0f0f0}
+.notification{position:fixed;top:20px;right:20px;background:rgba(20,20,20,0.95);color:white;padding:16px 20px;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,0.3);z-index:10002;backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);animation:slideIn 0.3s ease;min-width:300px}
+@keyframes slideIn{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+.notification-title{font-weight:600;margin-bottom:4px}
+.notification-body{font-size:13px;opacity:0.8}
+.system-monitor{padding:20px}
+.monitor-card{background:white;border-radius:8px;padding:16px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.1)}
+.monitor-card h4{margin-bottom:12px;color:#333}
+.monitor-bar{height:24px;background:#e0e0e0;border-radius:12px;overflow:hidden;margin-bottom:8px}
+.monitor-bar-fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);transition:width 0.3s;display:flex;align-items:center;justify-content:center;color:white;font-size:12px;font-weight:600}
+.photo-viewer{display:flex;align-items:center;justify-content:center;background:#000;height:100%;position:relative}
+.photo-viewer img{max-width:100%;max-height:100%;object-fit:contain}
+.photo-controls{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:12px}
+.photo-controls button{padding:10px 20px;background:rgba(255,255,255,0.2);color:white;border:none;border-radius:8px;cursor:pointer;backdrop-filter:blur(10px);transition:background 0.2s}
+.photo-controls button:hover{background:rgba(255,255,255,0.3)}
+.clock-widget{position:absolute;top:40px;right:40px;background:rgba(255,255,255,0.15);backdrop-filter:blur(20px);padding:24px;border-radius:16px;color:white;text-align:center;border:2px solid rgba(255,255,255,0.25);box-shadow:0 8px 32px rgba(0,0,0,0.3);z-index:2}
+.clock-time{font-size:48px;font-weight:700;margin-bottom:8px;text-shadow:0 2px 8px rgba(0,0,0,0.5)}
+.clock-date{font-size:16px;opacity:0.9;text-shadow:0 2px 4px rgba(0,0,0,0.5)}
+</style>
+</head>
+<body>
+<div class="desktop">
+<div class="clock-widget">
+<div class="clock-time" id="widgetTime">12:00</div>
+<div class="clock-date" id="widgetDate">Monday, Oct 20</div>
+</div>
+<div class="desktop-icons">
+<div class="desktop-icon" onclick="openApp('browser')">
+<div class="desktop-icon-img">🌐</div>
+<div class="desktop-icon-label">Browser</div>
+</div>
+<div class="desktop-icon" onclick="openApp('notepad')">
+<div class="desktop-icon-img">📝</div>
+<div class="desktop-icon-label">Notepad</div>
+</div>
+<div class="desktop-icon" onclick="openApp('terminal')">
+<div class="desktop-icon-img">⌨️</div>
+<div class="desktop-icon-label">Terminal</div>
+</div>
+<div class="desktop-icon" onclick="openApp('code-editor')">
+<div class="desktop-icon-img">💻</div>
+<div class="desktop-icon-label">Code Editor</div>
+</div>
+<div class="desktop-icon" onclick="openApp('files')">
+<div class="desktop-icon-img">📁</div>
+<div class="desktop-icon-label">Files</div>
+</div>
+<div class="desktop-icon" onclick="openApp('paint')">
+<div class="desktop-icon-img">🎨</div>
+<div class="desktop-icon-label">Paint</div>
+</div>
+<div class="desktop-icon" onclick="openApp('photos')">
+<div class="desktop-icon-img">🖼️</div>
+<div class="desktop-icon-label">Photos</div>
+</div>
+<div class="desktop-icon" onclick="openApp('game')">
+<div class="desktop-icon-img">🎮</div>
+<div class="desktop-icon-label">Snake Game</div>
+</div>
+<div class="desktop-icon" onclick="openApp('system-monitor')">
+<div class="desktop-icon-img">📊</div>
+<div class="desktop-icon-label">Monitor</div>
+</div>
+</div>
+</div>
+
+<div class="start-menu" id="startMenu">
+<div class="start-menu-header">
+<h2>ChromeOS Pro</h2>
+<p style="opacity:0.7">All Applications</p>
+</div>
+<div class="start-menu-search">
+<input type="text" placeholder="🔍 Search apps..." id="appSearch" oninput="searchApps()">
+</div>
+<div class="start-menu-apps" id="startMenuApps">
+<div class="start-app" onclick="openApp('browser')" data-name="browser">
+<div class="start-app-icon">🌐</div>
+<div class="start-app-name">Browser</div>
+</div>
+<div class="start-app" onclick="openApp('notepad')" data-name="notepad">
+<div class="start-app-icon">📝</div>
+<div class="start-app-name">Notepad</div>
+</div>
+<div class="start-app" onclick="openApp('terminal')" data-name="terminal">
+<div class="start-app-icon">⌨️</div>
+<div class="start-app-name">Terminal</div>
+</div>
+<div class="start-app" onclick="openApp('code-editor')" data-name="code editor">
+<div class="start-app-icon">💻</div>
+<div class="start-app-name">Code Editor</div>
+</div>
+<div class="start-app" onclick="openApp('files')" data-name="files">
+<div class="start-app-icon">📁</div>
+<div class="start-app-name">File Manager</div>
+</div>
+<div class="start-app" onclick="openApp('paint')" data-name="paint">
+<div class="start-app-icon">🎨</div>
+<div class="start-app-name">Paint</div>
+</div>
+<div class="start-app" onclick="openApp('photos')" data-name="photos">
+<div class="start-app-icon">🖼️</div>
+<div class="start-app-name">Photos</div>
+</div>
+<div class="start-app" onclick="openApp('game')" data-name="game snake">
+<div class="start-app-icon">🎮</div>
+<div class="start-app-name">Snake Game</div>
+</div>
+<div class="start-app" onclick="openApp('calculator')" data-name="calculator">
+<div class="start-app-icon">🔢</div>
+<div class="start-app-name">Calculator</div>
+</div>
+<div class="start-app" onclick="openApp('music')" data-name="music">
+<div class="start-app-icon">🎵</div>
+<div class="start-app-name">Music Player</div>
+</div>
+<div class="start-app" onclick="openApp('system-monitor')" data-name="monitor system">
+<div class="start-app-icon">📊</div>
+<div class="start-app-name">System Monitor</div>
+</div>
+<div class="start-app" onclick="openApp('settings')" data-name="settings">
+<div class="start-app-icon">⚙️</div>
+<div class="start-app-name">Settings</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="taskbar">
+<div class="start-btn" onclick="toggleStartMenu()">🪟</div>
+<div class="taskbar-apps" id="taskbarApps"></div>
+<div class="system-tray">
+<span id="clock"></span>
+</div>
+</div>
+
+<div class="context-menu" id="contextMenu">
+<div class="context-menu-item" onclick="openApp('notepad')">📝 New Notepad</div>
+<div class="context-menu-item" onclick="openApp('terminal')">⌨️ Open Terminal</div>
+<div class="context-menu-item" onclick="openApp('files')">📁 File Manager</div>
+<div class="context-menu-item" onclick="changeWallpaper()">🖼️ Change Wallpaper</div>
+<div class="context-menu-item" onclick="openApp('settings')">⚙️ Settings</div>
+</div>
+
+<!-- Browser Window -->
+<div class="window" id="browser" style="width:1100px;height:750px;left:100px;top:50px">
+<div class="window-header">
+<span class="window-title"><span>🌐</span> ChromeOS Browser</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('browser')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('browser')"></div>
+<div class="window-control close" onclick="closeWindow('browser')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="browser-toolbar">
+<button onclick="browserBack()" id="backBtn" disabled>◀</button>
+<button onclick="browserForward()" id="forwardBtn" disabled>▶</button>
+<button onclick="browserReload()">🔄</button>
+<input type="text" class="browser-url" id="browserUrl" placeholder="Enter URL or search..." onkeypress="browserNavigate(event)">
+<button onclick="browserGo()">Go</button>
+<button onclick="browserHome()">🏠</button>
+</div>
+<iframe class="browser-frame" id="browserFrame" sandbox="allow-same-origin allow-scripts allow-popups allow-forms"></iframe>
+</div>
+</div>
+
+<!-- Notepad Window -->
+<div class="window" id="notepad" style="width:700px;height:500px;left:100px;top:100px">
+<div class="window-header">
+<span class="window-title"><span>📝</span> Notepad</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('notepad')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('notepad')"></div>
+<div class="window-control close" onclick="closeWindow('notepad')"></div>
+</div>
+</div>
+<div class="window-content">
+<div class="text-editor-content">
+<textarea id="notepadText" placeholder="Start typing..."></textarea>
+</div>
+</div>
+</div>
+
+<!-- Terminal Window -->
+<div class="window" id="terminal" style="width:800px;height:600px;left:150px;top:80px">
+<div class="window-header">
+<span class="window-title"><span>⌨️</span> Terminal (Python)</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('terminal')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('terminal')"></div>
+<div class="window-control close" onclick="closeWindow('terminal')"></div>
+</div>
+</div>
+<div class="window-content">
+<div class="terminal-content" id="terminalContent">
+<div class="terminal-output">ChromeOS Pro Terminal v2.0 - Python Environment</div>
+<div class="terminal-output">Type Python code and press Enter. Commands: 'clear', 'help', 'date', 'ls'</div>
+<div class="terminal-output">---</div>
+<div class="terminal-input-line">
+<span class="terminal-prompt">>>> </span>
+<input type="text" class="terminal-input" id="terminalInput" onkeypress="handleTerminalInput(event)" autocomplete="off">
+</div>
+</div>
+</div>
+</div>
+
+<!-- Code Editor Window -->
+<div class="window" id="code-editor" style="width:950px;height:700px;left:200px;top:50px">
+<div class="window-header">
+<span class="window-title"><span>💻</span> Code Editor</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('code-editor')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('code-editor')"></div>
+<div class="window-control close" onclick="closeWindow('code-editor')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="code-editor-toolbar">
+<select id="languageSelect" onchange="changeLanguage()">
+<option value="javascript">JavaScript</option>
+<option value="python">Python</option>
+<option value="htmlmixed">HTML</option>
+<option value="css">CSS</option>
+</select>
+<button onclick="runCode()">▶ Run Code</button>
+<button onclick="clearEditor()">🗑️ Clear</button>
+<button onclick="saveCode()">💾 Save</button>
+<button onclick="formatCode()">✨ Format</button>
+</div>
+<textarea id="codeEditor"></textarea>
+<div class="code-output" id="codeOutput"></div>
+</div>
+</div>
+
+<!-- File Manager Window -->
+<div class="window" id="files" style="width:800px;height:600px;left:250px;top:100px">
+<div class="window-header">
+<span class="window-title"><span>📁</span> File Manager</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('files')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('files')"></div>
+<div class="window-control close" onclick="closeWindow('files')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="file-manager-toolbar">
+<button onclick="goBack()">◀ Back</button>
+<button onclick="createNewFile()">📄 New File</button>
+<button onclick="createNewFolder()">📁 New Folder</button>
+<button onclick="uploadFile()">📤 Upload</button>
+<button onclick="deleteSelected()">🗑️ Delete</button>
+</div>
+<div class="file-manager-content" id="fileManagerContent"></div>
+</div>
+</div>
+
+<!-- Paint Window -->
+<div class="window" id="paint" style="width:900px;height:700px;left:100px;top:50px">
+<div class="window-header">
+<span class="window-title"><span>🎨</span> Paint Studio</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('paint')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('paint')"></div>
+<div class="window-control close" onclick="closeWindow('paint')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="paint-toolbar">
+<button onclick="setTool('pen')">✏️ Pen</button>
+<button onclick="setTool('eraser')">🧹 Eraser</button>
+<button onclick="clearCanvas()">🗑️ Clear</button>
+<input type="color" id="colorPicker" value="#000000">
+<label>Size:</label>
+<input type="range" id="brushSize" min="1" max="50" value="5">
+<button onclick="fillCanvas()">🎨 Fill</button>
+<button onclick="downloadCanvas()">💾 Save</button>
+</div>
+<canvas class="paint-canvas" id="paintCanvas" width="884" height="632"></canvas>
+</div>
+</div>
+
+<!-- Photos Window -->
+<div class="window" id="photos" style="width:900px;height:700px;left:150px;top:80px">
+<div class="window-header">
+<span class="window-title"><span>🖼️</span> Photo Viewer</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('photos')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('photos')"></div>
+<div class="window-control close" onclick="closeWindow('photos')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="photo-viewer" id="photoViewer">
+<img id="photoImg" src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80" alt="Photo">
+<div class="photo-controls">
+<button onclick="prevPhoto()">◀ Previous</button>
+<button onclick="nextPhoto()">Next ▶</button>
+<button onclick="loadRandomPhoto()">🔄 Random</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Snake Game Window -->
+<div class="window" id="game" style="width:600px;height:700px;left:300px;top:100px">
+<div class="window-header">
+<span class="window-title"><span>🎮</span> Snake Game</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('game')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('game')"></div>
+<div class="window-control close" onclick="closeWindow('game')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="game-container">
+<h2>Snake Game</h2>
+<p style="margin:10px 0">Use Arrow Keys to Control</p>
+<canvas class="game-canvas" id="gameCanvas" width="400" height="400"></canvas>
+<div class="game-score">Score: <span id="score">0</span> | High: <span id="highScore">0</span></div>
+<div class="game-controls">
+<button class="game-btn" onclick="startGame()">▶ Start Game</button>
+<button class="game-btn" onclick="pauseGame()" style="background:#764ba2">⏸ Pause</button>
+<button class="game-btn" onclick="resetGame()" style="background:#ff5f56">🔄 Reset</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Calculator Window -->
+<div class="window" id="calculator" style="width:350px;height:520px;left:400px;top:150px">
+<div class="window-header">
+<span class="window-title"><span>🔢</span> Calculator</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('calculator')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('calculator')"></div>
+<div class="window-control close" onclick="closeWindow('calculator')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="calculator-grid">
+<div class="calculator-display" id="calcDisplay">0</div>
+<button class="calc-btn" onclick="calcInput('7')">7</button>
+<button class="calc-btn" onclick="calcInput('8')">8</button>
+<button class="calc-btn" onclick="calcInput('9')">9</button>
+<button class="calc-btn operator" onclick="calcInput('/')">÷</button>
+<button class="calc-btn" onclick="calcInput('4')">4</button>
+<button class="calc-btn" onclick="calcInput('5')">5</button>
+<button class="calc-btn" onclick="calcInput('6')">6</button>
+<button class="calc-btn operator" onclick="calcInput('*')">×</button>
+<button class="calc-btn" onclick="calcInput('1')">1</button>
+<button class="calc-btn" onclick="calcInput('2')">2</button>
+<button class="calc-btn" onclick="calcInput('3')">3</button>
+<button class="calc-btn operator" onclick="calcInput('-')">−</button>
+<button class="calc-btn" onclick="calcInput('0')">0</button>
+<button class="calc-btn" onclick="calcInput('.')">.</button>
+<button class="calc-btn" onclick="calcClear()">C</button>
+<button class="calc-btn operator" onclick="calcInput('+')">+</button>
+<button class="calc-btn equals" onclick="calcEquals()">=</button>
+</div>
+</div>
+</div>
+
+<!-- Music Player Window -->
+<div class="window" id="music" style="width:450px;height:550px;left:350px;top:120px">
+<div class="window-header">
+<span class="window-title"><span>🎵</span> Music Player</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('music')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('music')"></div>
+<div class="window-control close" onclick="closeWindow('music')"></div>
+</div>
+</div>
+<div class="window-content" style="padding:0">
+<div class="music-player">
+<div class="album-art">♪</div>
+<div class="music-info">
+<h3>Now Playing</h3>
+<p>ChromeOS Beats - Electronic Dreams</p>
+</div>
+<div class="music-controls">
+<button onclick="prevTrack()">⏮</button>
+<button onclick="toggleMusic()" id="playBtn">▶</button>
+<button onclick="nextTrack()">⏭</button>
+</div>
+<div class="music-progress">
+<input type="range" style="width:100%" value="0" max="100" id="musicProgress">
+</div>
+</div>
+</div>
+</div>
+
+<!-- System Monitor Window -->
+<div class="window" id="system-monitor" style="width:700px;height:600px;left:250px;top:120px">
+<div class="window-header">
+<span class="window-title"><span>📊</span> System Monitor</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('system-monitor')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('system-monitor')"></div>
+<div class="window-control close" onclick="closeWindow('system-monitor')"></div>
+</div>
+</div>
+<div class="window-content">
+<div class="system-monitor">
+<div class="monitor-card">
+<h4>CPU Usage</h4>
+<div class="monitor-bar">
+<div class="monitor-bar-fill" id="cpuBar" style="width:45%">45%</div>
+</div>
+<p style="font-size:13px;color:#666">Processes: <span id="processCount">12</span></p>
+</div>
+<div class="monitor-card">
+<h4>Memory (RAM)</h4>
+<div class="monitor-bar">
+<div class="monitor-bar-fill" id="ramBar" style="width:62%">62%</div>
+</div>
+<p style="font-size:13px;color:#666">8.0 GB / 12.9 GB used</p>
+</div>
+<div class="monitor-card">
+<h4>Disk Space</h4>
+<div class="monitor-bar">
+<div class="monitor-bar-fill" id="diskBar" style="width:78%">78%</div>
+</div>
+<p style="font-size:13px;color:#666">195 GB / 250 GB used</p>
+</div>
+<div class="monitor-card">
+<h4>Network Activity</h4>
+<canvas id="networkChart" width="630" height="150"></canvas>
+</div>
+</div>
+</div>
+</div>
+
+<!-- Settings Window -->
+<div class="window" id="settings" style="width:650px;height:650px;left:300px;top:100px">
+<div class="window-header">
+<span class="window-title"><span>⚙️</span> Settings</span>
+<div class="window-controls">
+<div class="window-control minimize" onclick="minimizeWindow('settings')"></div>
+<div class="window-control maximize" onclick="maximizeWindow('settings')"></div>
+<div class="window-control close" onclick="closeWindow('settings')"></div>
+</div>
+</div>
+<div class="window-content">
+<div class="settings-content">
+<div class="setting-group">
+<h3>🎨 Display</h3>
+<div class="setting-item">
+<span>Dark Mode</span>
+<div class="toggle-switch" onclick="toggleSetting(this,'darkMode')"></div>
+</div>
+<div class="setting-item">
+<span>High Contrast</span>
+<div class="toggle-switch" onclick="toggleSetting(this,'highContrast')"></div>
+</div>
+<div class="setting-item">
+<span>Animations</span>
+<div class="toggle-switch active" onclick="toggleSetting(this,'animations')"></div>
+</div>
+</div>
+<div class="setting-group">
+<h3>🔔 System</h3>
+<div class="setting-item">
+<span>Notifications</span>
+<div class="toggle-switch active" onclick="toggleSetting(this,'notifications')"></div>
+</div>
+<div class="setting-item">
+<span>Auto-Update</span>
+<div class="toggle-switch active" onclick="toggleSetting(this,'autoUpdate')"></div>
+</div>
+<div class="setting-item">
+<span>Sound Effects</span>
+<div class="toggle-switch active" onclick="toggleSetting(this,'sounds')"></div>
+</div>
+</div>
+<div class="setting-group">
+<h3>ℹ️ About</h3>
+<div class="setting-item">
+<span>Version</span>
+<span style="color:#667eea;font-weight:600">ChromeOS Pro 2.0</span>
+</div>
+<div class="setting-item">
+<span>Build</span>
+<span>2025.10.20</span>
+</div>
+<div class="setting-item">
+<span>License</span>
+<span>Ultimate Edition</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+let windows={};
+let zIndexCounter=1000;
+let dragElement=null;
+let offsetX=0;
+let offsetY=0;
+let fileSystem={'Documents':{type:'folder',files:{}},'Pictures':{type:'folder',files:{}},'Downloads':{type:'folder',files:{}},'Music':{type:'folder',files:{}},'readme.txt':{type:'file',content:'Welcome to ChromeOS Pro Ultimate Edition!\n\nThis is a fully functional operating system simulator with:\n- Web Browser\n- Code Editor with multiple languages\n- Terminal with Python support\n- File Manager\n- Paint Studio\n- Photo Viewer\n- Games and more!\n\nEnjoy exploring!'}};
+let currentPath=fileSystem;
+let pathHistory=[];
+let codeEditor;
+let calcCurrent='0';
+let browserHistory=[];
+let browserHistoryIndex=-1;
+let paintTool='pen';
+let photoIndex=0;
+let photos=['https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&q=80','https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&q=80','https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1200&q=80','https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1200&q=80','https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1200&q=80'];
+let gameState='stopped';
+let gamePaused=false;
+let musicPlaying=false;
+let currentTrack=0;
+let tracks=['Electronic Dreams','Synthwave Nights','Digital Horizon'];
+let systemSettings={darkMode:false,highContrast:false,animations:true,notifications:true,autoUpdate:true,sounds:true};
+
+document.addEventListener('DOMContentLoaded',function(){
+updateClock();
+setInterval(updateClock,1000);
+initCodeEditor();
+initPaint();
+renderFileManager();
+setupWindowDragging();
+setupContextMenu();
+initSystemMonitor();
+showNotification('System Ready','ChromeOS Pro Ultimate Edition loaded successfully');
+});
+
+function updateClock(){
+const now=new Date();
+const time=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+const date=now.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+const fullDate=now.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+document.getElementById('clock').textContent=`${time} | ${date}`;
+document.getElementById('widgetTime').textContent=time;
+document.getElementById('widgetDate').textContent=fullDate;
+}
+
+function toggleStartMenu(){
+document.getElementById('startMenu').classList.toggle('active');
+}
+
+function searchApps(){
+const query=document.getElementById('appSearch').value.toLowerCase();
+const apps=document.querySelectorAll('.start-app');
+apps.forEach(app=>{
+const name=app.dataset.name||'';
+app.style.display=name.includes(query)?'block':'none';
+});
+}
+
+function openApp(appName){
+const win=document.getElementById(appName);
+if(win){
+win.classList.add('active');
+bringToFront(win);
+addToTaskbar(appName);
+document.getElementById('startMenu').classList.remove('active');
+if(appName==='system-monitor')updateSystemMonitor();
+}
+}
+
+function closeWindow(appName){
+const win=document.getElementById(appName);
+win.classList.remove('active');
+removeFromTaskbar(appName);
+if(appName==='game')stopGame();
+}
+
+function minimizeWindow(appName){
+const win=document.getElementById(appName);
+win.classList.remove('active');
+}
+
+function maximizeWindow(appName){
+const win=document.getElementById(appName);
+if(win.style.width==='100%'){
+win.style.width=win.dataset.prevWidth;
+win.style.height=win.dataset.prevHeight;
+win.style.left=win.dataset.prevLeft;
+win.style.top=win.dataset.prevTop;
+}else{
+win.dataset.prevWidth=win.style.width;
+win.dataset.prevHeight=win.style.height;
+win.dataset.prevLeft=win.style.left;
+win.dataset.prevTop=win.style.top;
+win.style.width='100%';
+win.style.height='calc(100vh - 48px)';
+win.style.left='0';
+win.style.top='0';
+}
+}
+
+function bringToFront(win){
+win.style.zIndex=++zIndexCounter;
+}
+
+function addToTaskbar(appName){
+if(document.getElementById('taskbar-'+appName))return;
+const taskbarApps=document.getElementById('taskbarApps');
+const taskbarApp=document.createElement('div');
+taskbarApp.className='taskbar-app active';
+taskbarApp.id='taskbar-'+appName;
+taskbarApp.onclick=function(){
+const win=document.getElementById(appName);
+if(win.classList.contains('active')){
+win.classList.remove('active');
+}else{
+win.classList.add('active');
+bringToFront(win);
+}
+};
+const icons={'browser':'🌐','notepad':'📝','terminal':'⌨️','code-editor':'💻','files':'📁','paint':'🎨','photos':'🖼️','game':'🎮','calculator':'🔢','music':'🎵','system-monitor':'📊','settings':'⚙️'};
+taskbarApp.innerHTML=`<span>${icons[appName]}</span>`;
+taskbarApps.appendChild(taskbarApp);
+}
+
+function removeFromTaskbar(appName){
+const taskbarApp=document.getElementById('taskbar-'+appName);
+if(taskbarApp)taskbarApp.remove();
+}
+
+function setupWindowDragging(){
+document.querySelectorAll('.window-header').forEach(header=>{
+header.addEventListener('mousedown',function(e){
+if(e.target.classList.contains('window-control'))return;
+dragElement=this.parentElement;
+bringToFront(dragElement);
+offsetX=e.clientX-dragElement.offsetLeft;
+offsetY=e.clientY-dragElement.offsetTop;
+});
+});
+document.addEventListener('mousemove',function(e){
+if(dragElement){
+dragElement.style.left=(e.clientX-offsetX)+'px';
+dragElement.style.top=(e.clientY-offsetY)+'px';
+}
+});
+document.addEventListener('mouseup',function(){
+dragElement=null;
+});
+}
+
+function setupContextMenu(){
+document.querySelector('.desktop').addEventListener('contextmenu',function(e){
+e.preventDefault();
+const menu=document.getElementById('contextMenu');
+menu.style.display='block';
+menu.style.left=e.pageX+'px';
+menu.style.top=e.pageY+'px';
+});
+document.addEventListener('click',function(e){
+const menu=document.getElementById('contextMenu');
+if(!menu.contains(e.target)){
+menu.style.display='none';
+}
+const startMenu=document.getElementById('startMenu');
+const startBtn=document.querySelector('.start-btn');
+if(!startMenu.contains(e.target)&&!startBtn.contains(e.target)){
+startMenu.classList.remove('active');
+}
+});
+}
+
+function changeWallpaper(){
+const wallpapers=['https://images.unsplash.com/photo-1579547621113-e4bb2a19bdd6?w=1920&q=80','https://images.unsplash.com/photo-1557683316-973673baf926?w=1920&q=80','https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1920&q=80','https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80','https://images.unsplash.com/photo-1475274047050-1d0c0975c63e?w=1920&q=80'];
+const random=wallpapers[Math.floor(Math.random()*wallpapers.length)];
+document.querySelector('.desktop').style.backgroundImage=`url('${random}')`;
+showNotification('Wallpaper Changed','Your desktop background has been updated');
+}
+
+function showNotification(title,body){
+if(!systemSettings.notifications)return;
+const notif=document.createElement('div');
+notif.className='notification';
+notif.innerHTML=`<div class="notification-title">${title}</div><div class="notification-body">${body}</div>`;
+document.body.appendChild(notif);
+setTimeout(()=>notif.remove(),3000);
+}
+
+// Browser Functions
+function browserGo(){
+const url=document.getElementById('browserUrl').value;
+if(url){
+browserNavigateTo(url);
+}
+}
+
+function browserNavigate(e){
+if(e.key==='Enter'){
+browserGo();
+}
+}
+
+function browserNavigateTo(url){
+if(!url.startsWith('http')){
+url='https://'+url;
+}
+const frame=document.getElementById('browserFrame');
+frame.src=url;
+browserHistory=browserHistory.slice(0,browserHistoryIndex+1);
+browserHistory.push(url);
+browserHistoryIndex=browserHistory.length-1;
+document.getElementById('browserUrl').value=url;
+updateBrowserButtons();
+}
+
+function browserBack(){
+if(browserHistoryIndex>0){
+browserHistoryIndex--;
+const frame=document.getElementById('browserFrame');
+frame.src=browserHistory[browserHistoryIndex];
+document.getElementById('browserUrl').value=browserHistory[browserHistoryIndex];
+updateBrowserButtons();
+}
+}
+
+function browserForward(){
+if(browserHistoryIndex<browserHistory.length-1){
+browserHistoryIndex++;
+const frame=document.getElementById('browserFrame');
+frame.src=browserHistory[browserHistoryIndex];
+document.getElementById('browserUrl').value=browserHistory[browserHistoryIndex];
+updateBrowserButtons();
+}
+}
+
+function browserReload(){
+const frame=document.getElementById('browserFrame');
+frame.src=frame.src;
+}
+
+function browserHome(){
+browserNavigateTo('https://www.google.com');
+}
+
+function updateBrowserButtons(){
+document.getElementById('backBtn').disabled=browserHistoryIndex<=0;
+document.getElementById('forwardBtn').disabled=browserHistoryIndex>=browserHistory.length-1;
+}
+
+// Terminal Functions
+function handleTerminalInput(e){
+if(e.key==='Enter'){
+const input=e.target.value;
+const output=document.getElementById('terminalContent');
+output.innerHTML+=`<div class="terminal-output"><span style="color:#00ccff">>>> </span>${input}</div>`;
+if(input.trim()==='clear'){
+output.innerHTML='<div class="terminal-output">Terminal cleared.</div>';
+}else if(input.trim()==='help'){
+output.innerHTML+=`<div class="terminal-output" style="color:#00ccff">Available commands:\n  clear - Clear terminal\n  help - Show this help\n  date - Show current date\n  ls - List files\nOr enter Python code directly!</div>`;
+}else if(input.trim()==='date'){
+output.innerHTML+=`<div class="terminal-output" style="color:#00ccff">${new Date().toString()}</div>`;
+}else if(input.trim()==='ls'){
+output.innerHTML+=`<div class="terminal-output" style="color:#00ccff">Documents/  Pictures/  Downloads/  Music/  readme.txt</div>`;
+}else if(input.trim()){
+executePython(input);
+}
+e.target.value='';
+output.scrollTop=output.scrollHeight;
+}
+}
+
+function executePython(code){
+const output=document.getElementById('terminalContent');
+Sk.configure({
+output:function(text){
+output.innerHTML+=`<div class="terminal-output" style="color:#00ccff">${text}</div>`;
+},
+read:function(x){
+if(Sk.builtinFiles===undefined||Sk.builtinFiles["files"][x]===undefined)
+throw "File not found: '"+x+"'";
+return Sk.builtinFiles["files"][x];
+}
+});
+}
+</script>
+</body>
+</html>
